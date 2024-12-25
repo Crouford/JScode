@@ -1,39 +1,70 @@
-function code_compression(input) {
-    let result = '';
-    let i = 0;
+let fs = require('fs');                  //Подключение модуля fs для работы с файлами
 
-    while (i < input.length) {
-        let currentSym = input[i];
-        let length_same_sym = 1;
+let inText = fs.readFileSync('input.txt', 'utf8');    //Записываем текст файла в переменную inText
+inText = inText.toString();               //Конверитруем переменную в тип данных string, дабы работать со строкой
 
-        // Подсчет длины последовательности одинаковых символов
-        while (currentSym == input[length_same_sym+i]) {
-            length_same_sym++;
-        }
+let len = inText.length;                //Вычисляем длинну строки с текстом из файла
 
-        if (length_same_sym <= 2) {
-            result += currentSym.repeat(length_same_sym); // Оставляем символы как есть
-        } else {
-            result += length_same_sym + currentSym; // Добавляем количество и символ
-        }
+fs.writeFileSync('code.txt', '');            //Чистка файла, в который мы будем записывать уже закодированный текст из файла input.txt
+fs.writeFileSync('decode.txt', '');            //Чистка файла, который мы будем декодировать из текста файла code.txt 
 
-        i += length_same_sym; // Переходим к следующей группе символов
+//Кодирование input.txt
+
+for(let i = 0; i < len; i++){              //Цикл, что пройтись по каждому символу строки файла input.txt
+    let count = 0;                       //Переменная для подсчёта повторяющихся символов
+    while(inText.charAt(i) == inText.charAt(i+count)){    //Цикл для подсчёта повторяющихся символов
+        count++;
     }
+    i += count-1;                      //Элемент под индексом i равен элементу под индексом i+n-1, т. к. под этим индексом стоит последний элемент цепочки
 
-    return result;
+    //сжатие строки файла                    //Осмысливаем сжатие (мы должны максимально выгодно сжать строку, то есть нет смысла меня 1 или 2 элемента на 3) 
+    while(count >= 255){                //Проверка на сжатие не больше чем 255, так как на один чаровский символ приходится 8 байт
+    fs.appendFileSync('code.txt', "#"+ String.fromCharCode(255) + inText.charAt(i));  //добавляем сжатые повторы в code.txt
+        count = count - 255;                //если n повторов больше чем 255, то мы вычитаем 255 уже закодированных символов
+    }
+    if (count > 3 || inText.charAt(i) == '#')
+        fs.appendFileSync('code.txt', "#" + String.fromCharCode(count));   //добавляем в файл, оставшиеся символы в закодированном виде, то есть если 2<n<255
+    
+    //случай, если два повтора
+    if(count == 3 && inText.charAt(i) != '#'){
+        fs.appendFileSync('code.txt', inText.charAt(i));  //дублируем символ
+        fs.appendFileSync('code.txt', inText.charAt(i));  //дублируем символ
+    }
+    else if(count == 2 && inText.charAt(i) != '#'){
+        fs.appendFileSync('code.txt', inText.charAt(i));  //дублируем символ
+    }
+    fs.appendFileSync('code.txt', inText.charAt(i));    //добавляем символ, если он не повторяется
 }
 
-// Подключение библиотеки 
-let fs = require('fs');
+//Декдирование code.txt
 
-// Читаем входной файл
-var inText = fs.readFileSync('input.txt', 'utf-8'); // Убедитесь, что файл существует
-var a = inText.toString(); // Преобразуем в строку
+let inCodeText = fs.readFileSync('code.txt', 'utf8');  //Записываем текст файла в переменную inCodeText
+inCodeText = inCodeText.toString();            //Конверитруем переменную в тип данных string, дабы работать со строкой
 
-// Сжимание строку 
-let encode_str = code_compression(a);
+len = inCodeText.length;                //Вычисляем длинну строки с текстом из файла
 
-// Записываем в файл
-fs.writeFileSync('out_code.txt', encode_str);
+for(let i = 0; i < len; i++){              //Цикл, что пройтись по каждому символу строки файла code.txt
+    if(inCodeText.charAt(i) == '#'){           //Условие, если мы находим #, то начинаем декодировку
+        let repeat = inCodeText.charCodeAt(i + 1);     //После # идёт число повторов в ASCII и в данную переменную мы записываем количество повторов символа
+        for (let j = 0; j < repeat; j++){        //Цикл, чтобы добавить символ столько раз, сколько было указано в i + 1
+            fs.appendFileSync('decode.txt', inCodeText.charAt(i + 2))  //добавляем символ i + 2, то есть тот, который должен повторятся
+        }
+        i += 2;                      //К i добавляем 2, чтобы пойти дальше по строке 
+    }
+    else{                            //В случае отсутствия случа декодировки просто записываем символ
+        fs.appendFileSync('decode.txt', inCodeText.charAt(i))
+  }
+}
 
-console.log("Коэффициент сжатия = ", (a.length / encode_str.length)); // вывод кэфа
+let inDecodeText = fs.readFileSync('decode.txt', 'utf8');
+inDecodeText = inDecodeText.toString();
+
+let CfSzh = fs.statSync('input.txt').size / fs.statSync('code.txt').size;        //Считаем коэффициент сжатия
+
+if (inDecodeText === inText) {              //Проверка на работу RLE и вывод коэффициента сжатия
+    console.log("RLE is working");
+  console.log("Сompression ratio = ", CfSzh);
+}
+else {
+    console.log("RLE is not working");
+}
