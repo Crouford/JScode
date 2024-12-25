@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game of Life</title>
+</head>
+<body>
+<h1>HTML5 Canvas - Draw a Rectangle</h1>
+
+<canvas id="myCanvas" width="500px" height="500px" style="border: 1px solid black;">
+    Sorry, your browser does not support canvas.
+</canvas>
+<br>
+<button id="startButton" style="background-color: #191970; color: white;">
+    Start
+</button>
+
+<script>
+    const canvas = document.getElementById("myCanvas");
+    const ctx = canvas.getContext("2d");
+    let cellSize = 50;
+    let fieldSize = 50;
+    let currentField = new Array(fieldSize);
+    let nextField = new Array(fieldSize);
+
+    let canvasRect = canvas.getBoundingClientRect();
+
+    for (let i = 0; i < fieldSize; i++){
+        nextField[i] = new Array(fieldSize);
+        currentField[i] = new Array(fieldSize);
+    }
+
+
+    function neighborCount(r,c){ 
+        let sum = 0;
+        for (let i = -1; i <= 1; i++){
+            for (let j = -1; j <= 1; j++){
+                sum += currentField[(r + i + fieldSize)%fieldSize][(c + j + fieldSize)%fieldSize];  
+            }
+        }
+        sum -= currentField[r][c];
+        return sum;
+    }
+
+    function makeStep(){
+        for (let i = 0; i < fieldSize; i++){
+            for (let j = 0; j < fieldSize; j++){
+                let nbs = neighborCount(i, j);
+                if (((currentField[i][j] === 0) && (nbs === 3)) || ((currentField[i][j] === 1) && ((nbs === 2) || (nbs === 3)))){
+                    nextField[i][j] = 1;
+                }
+                else {
+                    nextField[i][j] = 0;
+                }
+
+            }
+        }
+        for (let i = 0; i < fieldSize; i++){
+            for (let j = 0; j < fieldSize; j++){
+                currentField[i][j] = nextField[i][j];
+            }
+        }
+    }
+
+    function draw(){
+        for (let i = 0; i < fieldSize; i++){
+            for (let j = 0; j < fieldSize; j++){
+                if (currentField[i][j] === 0){
+                    ctx.fillStyle = "MediumTurquoise";
+                }
+                else{
+                    ctx.fillStyle = "MediumSlateBlue";
+                }
+                ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);  
+                ctx.strokeStyle = "DarkBlue";
+                ctx.strokeRect(j * cellSize, i * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+
+    function go(){
+        makeStep();
+        draw();
+    }
+
+    function mClick(click) {
+        let x = Math.floor((click.clientX - canvasRect.left) / cellSize); 
+        let y = Math.floor((click.clientY - canvasRect.top) / cellSize);  
+        currentField[y][x] = 1;
+        draw();
+    }
+
+    canvas.addEventListener("click", mClick);  
+    function randomizeField() {
+        for (let i = 0; i < fieldSize; i++) {
+            for (let j = 0; j < fieldSize; j++) {
+                if (Math.random() > 0.7) {
+                    currentField[i][j] = 1;
+                } else {
+                    currentField[i][j] = 0;
+                }
+            }
+        }
+        draw();
+    }
+
+    document.getElementById("startButton").addEventListener("click", () => {
+        randomizeField();
+        if (!tm) {
+            tm = setInterval(go, 1000);
+        }
+    });
+    draw();
+    makeStep();
+    let tm = setInterval(go, 1000);
+</script>
+</body>
+</html>
